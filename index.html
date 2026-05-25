@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Memory Game Pro | Preview Colors Then Play</title>
+
+<style>
+* {
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+    text-align: center;
+    background: linear-gradient(135deg, #1a2a3a, #0f1a24);
+    color: #f0f3f8;
+    margin: 0;
+    min-height: 100vh;
+    padding: 10px 16px 30px;
+}
+
+h1 {
+    margin-top: 8px;
+    font-size: 1.9rem;
+    letter-spacing: 1px;
+    background: linear-gradient(135deg, #FFE6B0, #FFB347);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.controls {
+    margin: 12px auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(8px);
+    padding: 12px 18px;
+    border-radius: 60px;
+    width: fit-content;
+}
+
+select, button {
+    padding: 8px 18px;
+    border-radius: 40px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+}
+
+select {
+    background: #2c3e44;
+    color: white;
+    font-weight: 500;
+}
+
+button {
+    background: #ff8c42;
+    color: #1e2f3a;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+button:active {
+    transform: scale(0.96);
+}
+
+.stats {
+    background: rgba(0,0,0,0.5);
+    display: inline-flex;
+    gap: 28px;
+    padding: 8px 28px;
+    border-radius: 48px;
+    margin: 12px auto;
+    font-weight: bold;
+    font-size: 1.2rem;
+    backdrop-filter: blur(4px);
+}
+
+.stats span {
+    color: #FFD966;
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-left: 8px;
+}
+
+#game {
+    display: grid;
+    gap: 12px;
+    justify-content: center;
+    margin: 20px auto;
+    max-width: 95vw;
+}
+
+/* CARD DESIGN */
+.card {
+    width: clamp(70px, 12vw, 100px);
+    height: clamp(70px, 12vw, 100px);
+    perspective: 800px;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.card:hover {
+    transform: scale(1.02);
+}
+
+.inner {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+    transform-style: preserve-3d;
+    position: relative;
+    border-radius: 18px;
+    box-shadow: 0 12px 20px -8px rgba(0,0,0,0.4);
+}
+
+.card.flip .inner {
+    transform: rotateY(180deg);
+}
+
+.front, .back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 18px;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.front {
+    background: repeating-linear-gradient(45deg, #2c3e4e, #2c3e4e 12px, #1f2e3a 12px, #1f2e3a 24px);
+    border: 2px solid rgba(255,215,150,0.6);
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,0.1);
+}
+
+.front::after {
+    content: "?";
+    font-size: 2rem;
+    font-weight: bold;
+    color: rgba(255,215,140,0.9);
+    text-shadow: 2px 2px 0 #1f2a32;
+}
+
+.back {
+    transform: rotateY(180deg);
+    transition: filter 0.1s;
+    box-shadow: inset 0 0 0 3px rgba(255,255,200,0.3);
+}
+
+/* matched card effect */
+.card.matched {
+    filter: drop-shadow(0 0 8px gold);
+    cursor: default;
+    opacity: 0.75;
+    transform: scale(0.97);
+}
+
+.card.matched .back {
+    filter: brightness(1.05) saturate(1.1);
+    border: 2px solid #FFD966;
+}
+
+/* WIN MODAL */
+#winModal {
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(12px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: linear-gradient(145deg, #1f313e, #15242e);
+    padding: 24px 32px;
+    border-radius: 48px;
+    text-align: center;
+    max-width: 340px;
+    width: 80%;
+    border: 1px solid #ffb34760;
+    box-shadow: 0 25px 40px rgba(0,0,0,0.5);
+}
+
+.modal-content h2 {
+    margin: 0 0 8px;
+    font-size: 2rem;
+}
+
+.modal-content ul {
+    text-align: left;
+    background: #0f1c24;
+    border-radius: 28px;
+    padding: 12px 20px;
+    list-style: none;
+}
+
+.modal-content li {
+    padding: 5px;
+    font-family: monospace;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #ffb34740;
+}
+
+.modal-content button {
+    background: #f4a261;
+    margin-top: 12px;
+    font-size: 1.1rem;
+    padding: 10px 24px;
+}
+
+/* Responsive */
+@media (max-width: 650px) {
+    .card {
+        width: clamp(60px, 14vw, 75px);
+        height: clamp(60px, 14vw, 75px);
+    }
+    #game {
+        gap: 8px;
+    }
+    .stats {
+        font-size: 1rem;
+        padding: 6px 18px;
+    }
+}
+
+@keyframes pulseMatch {
+    0% { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(0.96); opacity: 0.9; }
+}
+
+.card.matched {
+    animation: pulseMatch 0.2s ease;
+}
+
+/* preview hint badge */
+.preview-hint {
+    background: #ffb34730;
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border-radius: 40px;
+    display: inline-block;
+    margin-top: 5px;
+}
+</style>
+</head>
+<body>
+
+<h1>🎴 MEMORY COLOR MATCH</h1>
+
+<div class="controls">
+    <select id="difficulty">
+        <option value="4">4x4 (8 pairs)</option>
+        <option value="6">6x6 (18 pairs)</option>
+        <option value="8">8x8 (32 pairs)</option>
+    </select>
+    <button id="newGameBtn">✨ New Game</button>
+    <button id="hideStartBtn">🔽 Start / Hide Cards</button>
+</div>
+
+<div class="stats">
+    🧮 Moves: <span id="moves">0</span> &nbsp;|&nbsp;
+    ⏱️ Time: <span id="time">0</span>s
+</div>
+<div class="preview-hint">👁️ Cards are visible — click "Start / Hide" to begin playing!</div>
+
+<div id="game"></div>
+
+<div id="winModal">
+    <div class="modal-content">
+        <h2>🏆 VICTORY!</h2>
+        <p id="result" style="font-size:1.2rem"></p>
+        <h3>📋 Best Scores</h3>
+        <ul id="leaderboard"></ul>
+        <button onclick="closeModalAndReset()">Play Again</button>
+    </div>
+</div>
+
+<script>
+// --------------------------------------------------------------
+// 32 DISTINCT COLORS (rich, high contrast, from the required palette)
+// --------------------------------------------------------------
+const DISTINCT_COLORS = [
+    "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF",
+    "#800000", "#008000", "#000080", "#808000", "#800080", "#008080",
+    "#FF8000", "#FF0080", "#80FF00", "#00FF80", "#8000FF", "#0080FF",
+    "#FF8080", "#80FF80", "#8080FF", "#FFFF80", "#FF80FF", "#80FFFF",
+    "#C00000", "#00C000", "#0000C0", "#C0C000", "#C000C0", "#00C0C0",
+    "#FF4040", "#40FF40"
+];
+
+// Game state
+let firstCard = null, secondCard = null;
+let lockBoard = false;
+let moves = 0, timer = 0, matches = 0, totalPairs = 0;
+let interval = null;
+let gameActive = false;      // if false, clicking cards does nothing (preview mode)
+let currentCardElements = [];
+
+const gameContainer = document.getElementById("game");
+const movesSpan = document.getElementById("moves");
+const timeSpan = document.getElementById("time");
+const difficultySelect = document.getElementById("difficulty");
+const newGameBtn = document.getElementById("newGameBtn");
+const hideStartBtn = document.getElementById("hideStartBtn");
+
+// Helper: shuffle array
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// Get colors for pairs (always using distinct colors first)
+function getColorsForPairs(pairCount) {
+    let colorsNeeded = pairCount;
+    if (colorsNeeded > DISTINCT_COLORS.length) {
+        let extra = [];
+        for (let i = 0; i < colorsNeeded - DISTINCT_COLORS.length; i++) {
+            let hue = (i * 37) % 360;
+            extra.push(`hsl(${hue}, 75%, 58%)`);
+        }
+        return [...DISTINCT_COLORS, ...extra];
+    }
+    return DISTINCT_COLORS.slice(0, colorsNeeded);
+}
+
+// Build the board (all cards face-up for preview)
+function buildBoard(keepTimer = false) {
+    if (interval) {
+        clearInterval(interval);
+        interval = null;
+    }
+    
+    firstCard = null;
+    secondCard = null;
+    lockBoard = false;
+    gameActive = false;     // preview mode initially: cards visible, no gameplay
+    matches = 0;
+    
+    if (!keepTimer) {
+        moves = 0;
+        timer = 0;
+        movesSpan.textContent = "0";
+        timeSpan.textContent = "0";
+    } else {
+        movesSpan.textContent = moves;
+        timeSpan.textContent = timer;
+    }
+    
+    const size = parseInt(difficultySelect.value);
+    const totalCards = size * size;
+    totalPairs = Math.floor(totalCards / 2);
+    
+    let colorPool = getColorsForPairs(totalPairs);
+    let cardsArray = [...colorPool.slice(0, totalPairs), ...colorPool.slice(0, totalPairs)];
+    if (cardsArray.length !== totalCards) {
+        while(cardsArray.length < totalCards) cardsArray.push("#2c3e50");
+        while(cardsArray.length > totalCards) cardsArray.pop();
+    }
+    cardsArray = shuffleArray([...cardsArray]);
+    
+    gameContainer.style.gridTemplateColumns = `repeat(${size}, minmax(70px, 100px))`;
+    gameContainer.innerHTML = "";
+    currentCardElements = [];
+    
+    cardsArray.forEach((color, idx) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.dataset.color = color;
+        card.dataset.index = idx;
+        
+        const innerDiv = document.createElement("div");
+        innerDiv.className = "inner";
+        
+        const frontDiv = document.createElement("div");
+        frontDiv.className = "front";
+        
+        const backDiv = document.createElement("div");
+        backDiv.className = "back";
+        backDiv.style.backgroundColor = color;
+        backDiv.style.boxShadow = "inset 0 0 0 2px rgba(255,255,200,0.4)";
+        
+        innerDiv.appendChild(frontDiv);
+        innerDiv.appendChild(backDiv);
+        card.appendChild(innerDiv);
+        
+        // IMPORTANT: For preview mode — all cards start FACE-UP (flip class added)
+        // So player can see every color before hiding.
+        card.classList.add("flip");
+        card.classList.remove("matched");
+        
+        // attach click event (will only work when gameActive = true)
+        card.addEventListener("click", () => onCardClick(card));
+        gameContainer.appendChild(card);
+        currentCardElements.push(card);
+    });
+}
+
+// Click handler for matching (only active when gameActive === true)
+function onCardClick(card) {
+    if (!gameActive || lockBoard) return;
+    if (card.classList.contains("matched")) return;
+    if (card.classList.contains("flip") && firstCard !== card) return;
+    if (firstCard === card) return;
+    
+    // flipping the card (should already be face-down when game active, but ensure)
+    // But during active game, we flip from hidden to visible: add flip class.
+    // Actually cards start face-down after startGame() removes "flip". So clicking adds flip.
+    if (!card.classList.contains("flip")) {
+        card.classList.add("flip");
+    }
+    
+    if (!firstCard) {
+        firstCard = card;
+        return;
+    }
+    
+    secondCard = card;
+    lockBoard = true;
+    
+    moves++;
+    movesSpan.textContent = moves;
+    
+    checkMatch();
+}
+
+function checkMatch() {
+    const color1 = firstCard.dataset.color;
+    const color2 = secondCard.dataset.color;
+    
+    if (color1 === color2) {
+        firstCard.classList.add("matched");
+        secondCard.classList.add("matched");
+        matches++;
+        
+        if (matches === totalPairs) {
+            winGame();
+        }
+        resetTurn();
+    } else {
+        setTimeout(() => {
+            if (firstCard) firstCard.classList.remove("flip");
+            if (secondCard) secondCard.classList.remove("flip");
+            resetTurn();
+        }, 700);
+    }
+}
+
+function resetTurn() {
+    firstCard = null;
+    secondCard = null;
+    lockBoard = false;
+}
+
+// HIDE ALL CARDS and start the game timer, enable interactions
+function hideCardsAndStart() {
+    if (gameActive) return; // already playing
+    
+    // make sure we have a board
+    const allCards = document.querySelectorAll("#game .card");
+    if (allCards.length === 0) return;
+    
+    // remove 'flip' class from every card -> all become face-down (question mark)
+    allCards.forEach(card => {
+        card.classList.remove("flip");
+        // ensure matched class is cleared (fresh start)
+        card.classList.remove("matched");
+    });
+    
+    // reset match counter, moves and timer
+    matches = 0;
+    moves = 0;
+    timer = 0;
+    movesSpan.textContent = "0";
+    timeSpan.textContent = "0";
+    firstCard = null;
+    secondCard = null;
+    lockBoard = false;
+    
+    // clear any previous interval
+    if (interval) clearInterval(interval);
+    
+    // start timer
+    interval = setInterval(() => {
+        if (gameActive) {
+            timer++;
+            timeSpan.textContent = timer;
+        }
+    }, 1000);
+    
+    // activate gameplay
+    gameActive = true;
+}
+
+// Complete reset: new board (preview mode, cards visible)
+function fullResetAndPreview() {
+    if (interval) {
+        clearInterval(interval);
+        interval = null;
+    }
+    buildBoard(false);      // creates brand new shuffled board, all cards FACE-UP
+    gameActive = false;     // preview mode: no moves counting, no click matching
+    // ensure stats reset
+    moves = 0;
+    timer = 0;
+    movesSpan.textContent = "0";
+    timeSpan.textContent = "0";
+    matches = 0;
+    firstCard = secondCard = null;
+    lockBoard = false;
+}
+
+// win game logic
+function winGame() {
+    if (interval) {
+        clearInterval(interval);
+        interval = null;
+    }
+    gameActive = false;
+    
+    const resultText = `🎯 ${moves} moves  |  ⏱️ ${timer} seconds 🎯`;
+    document.getElementById("result").textContent = resultText;
+    
+    saveScore(moves, timer);
+    showLeaderboard();
+    document.getElementById("winModal").style.display = "flex";
+}
+
+// Leaderboard functions
+function saveScore(movesCount, timeSec) {
+    let scores = JSON.parse(localStorage.getItem("colorMemoryScores")) || [];
+    scores.push({ moves: movesCount, time: timeSec, date: Date.now() });
+    scores.sort((a, b) => {
+        if (a.moves === b.moves) return a.time - b.time;
+        return a.moves - b.moves;
+    });
+    scores = scores.slice(0, 8);
+    localStorage.setItem("colorMemoryScores", JSON.stringify(scores));
+}
+
+function showLeaderboard() {
+    const leaderboardList = document.getElementById("leaderboard");
+    leaderboardList.innerHTML = "";
+    let scores = JSON.parse(localStorage.getItem("colorMemoryScores")) || [];
+    if (scores.length === 0) {
+        leaderboardList.innerHTML = "<li>🏅 No scores yet</li>";
+        return;
+    }
+    scores.forEach((score, idx) => {
+        let li = document.createElement("li");
+        li.textContent = `${idx+1}.  ${score.moves} moves  •  ${score.time}s`;
+        leaderboardList.appendChild(li);
+    });
+}
+
+function closeModalAndReset() {
+    document.getElementById("winModal").style.display = "none";
+    fullResetAndPreview();   // back to preview mode with all colors visible
+}
+
+// Event listeners
+newGameBtn.addEventListener("click", () => {
+    // New game: reset everything, all colors visible, not active
+    fullResetAndPreview();
+});
+
+hideStartBtn.addEventListener("click", () => {
+    // If game is already active and someone clicks "Start/Hide" again, do nothing? 
+    // Better: if gameActive is true, we could ignore, but user might want to restart?
+    // But spec: after hiding, game starts. If clicked again, we should not interrupt.
+    if (gameActive) return;
+    // Otherwise: hide all cards (remove flip) and start matching
+    hideCardsAndStart();
+});
+
+difficultySelect.addEventListener("change", () => {
+    // change difficulty -> rebuild board with new size, all colors visible, game inactive
+    fullResetAndPreview();
+});
+
+// initial load: show all colors face-up (preview mode)
+fullResetAndPreview();
+
+// additional small UI helper: update hint text on start
+function updateHintVisibility() {
+    const hint = document.querySelector(".preview-hint");
+    if (hint) {
+        if (gameActive) {
+            hint.textContent = "🎮 Game in progress — match the pairs!";
+            hint.style.background = "#4c9f70aa";
+        } else {
+            hint.textContent = "👁️ Preview mode — all colors visible! Click 'Start / Hide Cards' to begin.";
+            hint.style.background = "#ffb34730";
+        }
+    }
+}
+
+// override hideCardsAndStart to also update hint
+const originalHide = hideCardsAndStart;
+hideCardsAndStart = function() {
+    originalHide();
+    updateHintVisibility();
+};
+
+// override fullResetAndPreview to update hint
+const originalReset = fullResetAndPreview;
+fullResetAndPreview = function() {
+    originalReset();
+    updateHintVisibility();
+};
+
+// patch winGame to update hint after win
+const originalWin = winGame;
+winGame = function() {
+    originalWin();
+    updateHintVisibility();
+};
+
+// re-apply initial hint
+updateHintVisibility();
+
+// ensure that after modal close, hint is correct
+window.closeModalAndReset = closeModalAndReset;
+</script>
+</body>
+</html>
